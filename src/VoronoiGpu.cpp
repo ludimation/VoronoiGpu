@@ -63,9 +63,25 @@ gl::Texture encodePoints( const vector<Vec2f> &points, int width, int height )
 {
 	Surface32f result( width, height, false );
 	ip::fill( &result, Colorf( -65535.0f, -65535.0f, 0 ) ); // seed the result with a huge distance that will easily be "beaten" by any given site
-	for( vector<Vec2f>::const_iterator ptIt = points.begin(); ptIt != points.end(); ++ptIt )
-		result.setPixel( *ptIt, Color( (float)app::toPixels( ptIt->x ), (float)app::toPixels( ptIt->y ), 0 ) );
-	
+	for( vector<Vec2f>::const_iterator ptIt = points.begin(); ptIt != points.end(); ++ptIt ){
+        /*result.setPixel(
+                        *ptIt,
+                        Color(
+                              (float)app::toPixels( ptIt->x ),
+                              (float)app::toPixels( ptIt->y ),
+                              0
+                              )
+                        );*/
+        result.setPixel(
+                        *ptIt,
+                        Color(
+                              (float)app::toPixels( ptIt->x ),
+                              (float)app::toPixels( ptIt->y ),
+                              0xffff00
+                              )
+                        );
+    }
+
 	return gl::Texture( result );
 }
 
@@ -95,6 +111,7 @@ ci::Surface32f calcDiscreteVoronoiGpu( const std::vector<ci::Vec2f> &points, int
 	voronoiShader.uniform( "tex0", 0 );
 	int curFbo = 0;
 	int numPasses = log2ceil( std::max( width, height ) );
+    numPasses /= 2;
 	for( int pass = 1; pass <= numPasses; ++pass ) {
 		voronoiShader.uniform( "sampleScale", Vec2f( 1, 1 ) * (float)( 1 << ( numPasses - pass ) ) );
 		curFbo = pass % 2;

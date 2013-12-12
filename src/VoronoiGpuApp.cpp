@@ -12,33 +12,37 @@ using namespace std;
 class VoronoiGpuApp : public AppBasic {
  public:
 	void prepareSettings( Settings *settings ) { settings->enableHighDensityDisplay( true ); }
+    void updateWindowSettings();
 	void setup();
 	void calculateVoronoiTexture();
 	
 	void mouseDown( MouseEvent event );
     void mouseDrag( MouseEvent event);
 	void keyDown( KeyEvent event );
+    
 	
 	void update();
 	void draw();
 
-    int winH;
-    int winW;
-    Vec2f winC;
-    float scale;
-    Vec2f offset;
-    Vec2f newLoc;
+    bool    calcTexture;
+    int     winH;
+    int     winW;
+    Vec2f   winC;
+    float   scale;
+    Vec2f   offset;
+    Vec2f   newLoc;
 
 	vector<Vec2f>	mPoints;
 	gl::Texture		mTexture;
 	bool			mShowDistance;
 };
 
-void VoronoiGpuApp::setup()
+void VoronoiGpuApp::updateWindowSettings()
 {
-    int winH = (float)getWindowHeight();
-    int winW = (float)getWindowWidth();
-    float scale = 0.5f;
+    calcTexture = false;
+    winH = (float)getWindowHeight();
+    winW = (float)getWindowWidth();
+    scale = 0.1f;
     
     winC.x = winW / 2.0f;
     winC.y = winH / 2.0f;
@@ -49,7 +53,7 @@ void VoronoiGpuApp::setup()
      // debugging
      cout
      << "===="                   << endl
-     << "setup(): executing"    << endl
+     << "setup(): executing"     << endl
      << "winH = " << winH        << endl
      << "winW = " << winW        << endl
      << "winC = " << winC        << endl
@@ -57,7 +61,12 @@ void VoronoiGpuApp::setup()
      << "offset = " << offset    << endl
      << "newLoc = " << newLoc    << endl
      ;//*/
+    
+}
 
+void VoronoiGpuApp::setup()
+{
+    setFrameRate(90);
     
 	mShowDistance = true;
 	// register window changed display callback
@@ -67,6 +76,8 @@ void VoronoiGpuApp::setup()
     mPoints.push_back( Vec2f( 200, 120 ) );
     mPoints.push_back( Vec2f( 130, 140 ) );	
     mPoints.push_back( Vec2f( 200, 200 ) );
+    
+    updateWindowSettings();
     
     calculateVoronoiTexture();
 }
@@ -90,12 +101,12 @@ void VoronoiGpuApp::calculateVoronoiTexture()
 void VoronoiGpuApp::mouseDown( MouseEvent event )
 {
 	mPoints.push_back( event.getPos() );
-	calculateVoronoiTexture();
+	// calculateVoronoiTexture();
 }
 
 void VoronoiGpuApp::mouseDrag( MouseEvent event )
 {
-	//mouseDown( event );
+	mouseDown( event );
 }
 
 
@@ -109,6 +120,10 @@ void VoronoiGpuApp::keyDown( KeyEvent event )
 		mPoints.clear();
 		calculateVoronoiTexture();
 	}
+	else if( event.getChar() == 'f' || event.getChar() == 'F' ){
+		setFullScreen( ! isFullScreen() );
+        updateWindowSettings();
+	}
 }
 
 void VoronoiGpuApp::update()
@@ -121,10 +136,10 @@ void VoronoiGpuApp::update()
         offset.x *= scale;
         offset.y *= scale;
         newLoc.x = mPoints[i].x + offset.x;
-        newLoc .y= mPoints[i].y + offset.y;
+        newLoc.y = mPoints[i].y + offset.y;
         
         // remove any points that are one screen away from the edge of the screen
-        if (newLoc.x > winW * 2 || newLoc.x < -winW || newLoc.y > winH * 2 || newLoc.y < -winH ) {
+        if ( (newLoc.x > winW * 2 || newLoc.x < -winW || newLoc.y > winH * 2 || newLoc.y < -winH) && (mPoints.size() > 5) ) {
             mPoints.erase (mPoints.begin() + i);
         } else {
             mPoints[i].x = newLoc.x;
@@ -143,8 +158,10 @@ void VoronoiGpuApp::update()
         ;// */
     }
     
-    // update texture
-    calculateVoronoiTexture();
+    // update texture every other frame
+    if (calcTexture)
+        calculateVoronoiTexture();
+    calcTexture = !calcTexture;
 }
 
 void VoronoiGpuApp::draw()
@@ -152,19 +169,19 @@ void VoronoiGpuApp::draw()
 	gl::clear();
 	gl::setMatricesWindow( getWindowSize() );
 	
-	gl::color( Color( 1, 1, 1 ) );
+	gl::color( Color( 1.0f, 0.0f, 1.0f ) ); // magenta
 	if( mTexture ) {
 		gl::draw( mTexture, toPoints( mTexture.getBounds() ) );
 		mTexture.disable();
 	}
 	
-	// draw the voronoi sites in yellow
-	gl::color( Color( 1.0f, 1.0f, 0.0f ) );	
+	// draw the voronoi sites in white
+	gl::color( Color( 1.0f, 1.0f, 1.0f ) );
 	for( vector<Vec2f>::const_iterator ptIt = mPoints.begin(); ptIt != mPoints.end(); ++ptIt )
 		gl::drawSolidCircle( Vec2f( *ptIt ), 2.0f );
 	
-	gl::enableAlphaBlending();
-	gl::drawStringRight( "Click to add a point", Vec2f( getWindowWidth() - toPixels( 10 ), getWindowHeight() - toPixels( 20 ) ), Color( 1, 0.3, 0 ), Font( "Arial", toPixels( 12 ) ) );
+    gl::enableAlphaBlending();
+	gl::drawStringRight( "Click to add a point. Click and drag to add many.", Vec2f( getWindowWidth() - toPixels( 10 ), getWindowHeight() - toPixels( 20 ) ), Color( 1, 1, 1 ), Font( "Arial", toPixels( 12 ) ) ); // white
 	gl::disableAlphaBlending();
 }
 
